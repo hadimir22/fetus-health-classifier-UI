@@ -1,7 +1,15 @@
-import {Row, Col, Container, Button, Image, Badge} from 'react-bootstrap'
+import React from 'react';
+import {Row, Col, Container, Button, Image, Spinner,Alert, Badge} from 'react-bootstrap'
 import './App.css'
 import Img from './undraw_baby.png'
 import AI from './AI.png'
+import axios from 'axios';
+
+
+let url = 'https://fetus-classification-api.herokuapp.com/predict'
+let predictions = ["Normal",  "Suspect",  "Pathological"]
+
+
 
 
 function NavigationBar(){
@@ -41,7 +49,7 @@ function About(){
     <Badge style={{padding:'6px'}} pill variant="primary">DecisionTreeClassifier </Badge>&nbsp;
     <Badge style={{padding:'6px'}} pill variant="success">QuadraticDiscriminantAnalysis </Badge>&nbsp; among all the 
     models <Badge style={{padding:'6px'}} pill variant="danger">Random forest classifier </Badge>&nbsp;  had the maximum accuracy of 92.5% that is what powers this app.
-    
+    you can check the code for <a href='https://github.com/hadimir22/fetus-health-classifier' >ML model</a>, <a href='https://github.com/hadimir22/fetus-health-classifier-ui'>UI</a> and <a href='https://github.com/hadimir22/fetus-health-api' >API</a>. Dont forget to give a  &#9733;	
 
 
     </p>
@@ -61,98 +69,230 @@ function About(){
 }
 
 
+class App extends React.Component{
 
-function App() {
-  return (
-    <>
- <NavigationBar/>
+  constructor(props) {
+    super(props);
+    this.state = {
+      showMain: true,
+      loading: false,
+      result: null, 
+      variant:null,
+      fetus: '',
+      FHR: null,
+      ACC: null,
+      fetalMovements: null,
+      utereneCont: null,
+      lightDec: null,
+      severeDec: null,
+      prolonedDec: null,
+      percentSTR: null,
+      meanSTV: null,
+      percentLTR: null,
+      meanLTV: null,    
+    };
+  }
 
- <div className='main' >
- <Container>
-   <Row>
- 
- 
-   <Col style={{'textAlign':'center'}} xs={12} sm={12} md={12} lg={12} > 
-   Check what <span style={{color:'#bd2130'}} >AI</span> has to says about your fetal health
-   <p style={{fontSize:'15px'}} >
-     Our model can classify the health of a fetus as Normal, Suspect or Pathological 
-    </p>
-   </Col>
+  clear = () => {
+    this.setState({
+      showMain: true,
+      loading: false,
+      result: null, 
+      variant:null,
+      fetus: '',
+      FHR: null,
+      ACC: null,
+      fetalMovements: null,
+      utereneCont: null,
+      lightDec: null,
+      severeDec: null,
+      prolonedDec: null,
+      percentSTR: null,
+      meanSTV: null,
+      percentLTR: null,
+      meanLTV: null, 
+    })
+  }
 
-   <Col className='flex-center' xs={12} sm={12} md={12} lg={12} > 
-   <div className="image">
-    <Image src={Img} fluid />
-    </div>
-   </Col>
-   
-   </Row>
-  <Row  style={{marginTop:'0px'}}>
-    <Col className='form' xs={12} sm={12} md={4} lg={4}>
-    <input className='input' type="number" name="name" placeholder='Baseline Fetal Heart Rate' />
-    </Col>
+  handlePredict = (e) =>{
+    e.preventDefault()
+    this.setState({loading:true, showMain:false})
+    const  {FHR, ACC, fetalMovements, utereneCont, lightDec, severeDec, prolonedDec, percentSTR, meanSTV, percentLTR, meanLTV }  = this.state
+    let features = [
+      FHR?FHR:0, ACC?ACC:0, fetalMovements?fetalMovements:0,utereneCont?utereneCont:0, 
+      lightDec?lightDec:0, severeDec?severeDec:0, prolonedDec?prolonedDec:0, percentSTR?percentSTR:0,
+      meanSTV?meanSTV:0, percentLTR?percentLTR:0, meanLTV?meanLTV:0
+      ] 
 
-    <Col className='form' xs={12} sm={12} md={4} lg={4}>
-    <input className='input' type="number" name="name" placeholder='Accelerations/second' />
-    </Col>
+    axios.post(url, {
+       features 
+    })
+    .then((response) => {
+      console.log(response.data.predictions);
+      let max = Math.max(...response.data.predictions)
+      let index = response.data.predictions.indexOf(max)
+      let fetus = predictions[index] 
+      let variant = ''
+      if (fetus == 'Normal'){ variant = 'success'}
+      else if (fetus == 'Suspect'){ variant = 'warning'}
+      else { variant = 'danger'}
+      this.setState({result: max, fetus:fetus, variant:variant, loading:false}, () =>{
+        // console.log(this.state)
+      })
 
-    <Col className='form' xs={12} sm={12} md={4} lg={4}>
-    <input className='input' type="number" name="name" placeholder='Fetal movements/second' />
-    </Col>
+    })
+    .catch((error) => {
+      console.log(error);
+      alert('something went wrong! please try again')
+      this.clear()
+    });
 
-    <Col className='form' xs={12} sm={12} md={4} lg={4}>
-    <input className='input' type="number" name="name" placeholder='Uterine contractions/second' />
-    </Col>
+  }
 
-    <Col className='form' xs={12} sm={12} md={4} lg={4}>
-    <input className='input' type="number" name="name" placeholder='Light decelerations/second' />
-    </Col>
+  render(){
+    return(
+      <>
+      <NavigationBar/>
+     
+      <div className='main' >
+      
+     { this.state.loading 
+     &&  (<Container style={{padding:'20px'}}>
+          <Row>
+            <Col className='flex-center' xs={12} sm={12} md={12} lg={12}>
+            <Spinner animation="border" size='lg' variant="danger" />
+            
+            </Col>
+            <Col className='flex-center' xs={12} sm={12} md={12} lg={12}>
+             
+            Hold tight! prediction in progress
+            </Col>
+          </Row>
+        </Container>
+        )}
 
-    <Col className='form' xs={12} sm={12} md={4} lg={4}>
-    <input className='input' type="number" name="name" placeholder='Severe decelerations/second' />
-    </Col>
+        {this.state.result && (
+          <Container>
+            <Row>
+            <Col className='flex-center' xs={12} sm={12} md={12} lg={12}>
+            <Alert   variant={this.state.variant}>
+              <p> The Model has predicted that probability of your fetus being <span  style={{color:'#bd2130'}} > {this.state.fetus} </span>
+               is <span  style={{color:'#bd2130'}} > {this.state.result } </span> </p>
+              </Alert>
+              </Col>
+              <Col className='form' xs={12} sm={12} md={12} lg={12}>
+         <Button variant="danger" size='lg' onClick={() => this.clear()} >Predict another</Button>
+         </Col>
 
-    <Col className='form' xs={12} sm={12} md={4} lg={4}>
-    <input className='input' type="number" name="name" placeholder='Prolongued decelerations/second' />
-    </Col>
+         <Col className='form' xs={12} sm={12} md={12} lg={12}>
+         Don't forget to consult your doctor. Happy parenting!
+         </Col>
 
-    <Col className='form' xs={12} sm={12} md={4} lg={4}>
-    <input className='input' type="number" name="name" placeholder='% of time with abnormal STR' />
-    </Col>
-    
-    <Col className='form' xs={12} sm={12} md={4} lg={4}>
-    <input className='input' type="number" name="name" placeholder='Mean value of short term variability' />
-    </Col>
-
-    <Col className='form' xs={12} sm={12} md={4} lg={4}>
-    <input className='input' type="number" name="name" placeholder='% of time with abnormal LTR' />
-    </Col>
-
-    <Col className='form' xs={12} sm={12} md={4} lg={4}>
-    <input className='input' type="number" name="name" placeholder='Mean value of long term variability' />
-    </Col>
-
-    <Col xs={12} sm={12} md={12} lg={12} style={{paddingLeft:'40px', fontSize:'small'}} >
-    All inputs should be numeric
-    </Col>
+            </Row>
+          
+          </Container>
+        )}
 
 
-    <Col className='form' xs={12} sm={12} md={12} lg={12}>
-    <Button variant="danger" size='lg' >Predict</Button>
-    </Col>
+  { this.state.showMain &&
+   (  
+       <Container>
+        <Row>
+      
+      
+        <Col style={{'textAlign':'center'}} xs={12} sm={12} md={12} lg={12} > 
+        Check what <span style={{color:'#bd2130'}} >AI</span> has to says about your fetal health
+        <p style={{fontSize:'15px'}} >
+          Our model can classify the health of a fetus as Normal, Suspect or Pathological 
+         </p>
+        </Col>
+     
+        <Col className='flex-center' xs={12} sm={12} md={12} lg={12} > 
+        <div className="image">
+         <Image src={Img} fluid />
+         </div>
+        </Col>
+        
+        </Row>
+       <Row  style={{marginTop:'0px'}}>
+       <Col xs={12} sm={12} md={12} lg={12} style={{paddingLeft:'40px', fontSize:'small'}} >
+         All inputs should be numeric
+         </Col>
 
- 
+         <Col className='form' xs={12} sm={12} md={4} lg={4}>
+         <input className='input' type="number" min='60'  onChange={(e) => this.setState({ FHR: parseFloat(e.target.value)})} value={this.state.FHR} placeholder='Baseline Fetal Heart Rate' />
+         </Col>
+     
+         <Col className='form' xs={12} sm={12} md={4} lg={4}>
+         <input className='input' type="number" min='0'  onChange={(e) => this.setState({ ACC: parseFloat(e.target.value)})} value={this.state.ACC} placeholder='Accelerations/second' />
+         </Col>
+     
+         <Col className='form' xs={12} sm={12} md={4} lg={4}>
+         <input className='input' type="number" min='0'  onChange={(e) => this.setState({ fetalMovements : parseFloat(e.target.value)})} value={this.state.fetalMovements} placeholder='Fetal movements/second' />
+         </Col>
+     
+         <Col className='form' xs={12} sm={12} md={4} lg={4}>
+         <input className='input' type="number" min='0'  onChange={(e) => this.setState({utereneCont : parseFloat(e.target.value)})} value={this.state.utereneCont} placeholder='Uterine contractions/second' />
+         </Col>
+     
+         <Col className='form' xs={12} sm={12} md={4} lg={4}>
+         <input className='input' type="number" min='0'  onChange={(e) => this.setState({ lightDec: parseFloat(e.target.value)})} value={this.state.lightDec} placeholder='Light decelerations/second' />
+         </Col>
+     
+         <Col className='form' xs={12} sm={12} md={4} lg={4}>
+         <input className='input' type="number" min='0'  onChange={(e) => this.setState({ severeDec : parseFloat(e.target.value)})} value={this.state.severeDec} placeholder='Severe decelerations/second' />
+         </Col>
+     
+         <Col className='form' xs={12} sm={12} md={4} lg={4}>
+         <input className='input' type="number" min='0'  onChange={(e) => this.setState({ prolonedDec : parseFloat(e.target.value)})} value={this.state.prolonedDec} placeholder='Prolongued decelerations/second' />
+         </Col>
+     
+         <Col className='form' xs={12} sm={12} md={4} lg={4}>
+         <input className='input' type="number" min='0'  onChange={(e) => this.setState({ percentSTR : parseFloat(e.target.value)})} value={this.state.percentSTR} placeholder='% of time with abnormal STR' />
+         </Col>
+         
+         <Col className='form' xs={12} sm={12} md={4} lg={4}>
+         <input className='input' type="number" min='0'  onChange={(e) => this.setState({ meanSTV : parseFloat(e.target.value)})} value={this.state.meanSTV} placeholder='Mean value of short term variability' />
+         </Col>
+     
+         <Col className='form' xs={12} sm={12} md={4} lg={4}>
+         <input className='input' type="number" min='0'  onChange={(e) => this.setState({ percentLTR: parseFloat(e.target.value)})} value={this.state.percentLTR} placeholder='% of time with abnormal LTR' />
+         </Col>
+     
+         <Col className='form' xs={12} sm={12} md={4} lg={4}>
+         <input className='input' type="number" min='0'  onChange={(e) => this.setState({meanLTV : parseFloat(e.target.value)})} value={this.state.meanLTV} placeholder='Mean value of long term variability' />
+         </Col>
+     
+        
+     
+     
+         <Col className='form' xs={12} sm={12} md={12} lg={12}>
+         <Button variant="danger" size='lg' onClick={(e) => this.handlePredict(e)} >Predict</Button>
+         </Col>
+     
+      
+     
+     
+       </Row> 
+     </Container>
+     )}
+      
+      </div>
 
+      { this.state.showMain &&
+   (  
+     <>
+      <hr/>
+      <div>
+      <About/>
+      </div>
+      </>
+   )}
 
-  </Row> 
-</Container>
- 
- </div>
- <hr/>
- <div>
- <About/>
- </div>
-    </>
-  );
+         </>
+    )
+    }
 }
+ 
 
 export default App;
