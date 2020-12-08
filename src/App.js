@@ -76,6 +76,7 @@ class App extends React.Component{
     this.state = {
       showMain: true,
       loading: false,
+      btnDisabled: true,
       result: null, 
       variant:null,
       fetus: '',
@@ -97,6 +98,7 @@ class App extends React.Component{
     this.setState({
       showMain: true,
       loading: false,
+      btnDisabled: true,
       result: null, 
       variant:null,
       fetus: '',
@@ -112,6 +114,21 @@ class App extends React.Component{
       percentLTR: null,
       meanLTV: null, 
     })
+  }
+
+  validate =  (e) => {
+    this.setState({ FHR: parseFloat(e.target.value)}, () => {
+      if (this.state.FHR === 0 || isNaN(this.state.FHR)){
+        this.setState({btnDisabled: true})
+      }else {
+        
+        this.setState({btnDisabled: false})
+      }
+      console.log(this.state.FHR, this.state.btnDisabled)
+
+    })
+
+    
   }
 
   handlePredict = (e) =>{
@@ -133,8 +150,8 @@ class App extends React.Component{
       let index = response.data.predictions.indexOf(max)
       let fetus = predictions[index] 
       let variant = ''
-      if (fetus == 'Normal'){ variant = 'success'}
-      else if (fetus == 'Suspect'){ variant = 'warning'}
+      if (fetus === 'Normal'){ variant = 'success'}
+      else if (fetus === 'Suspect'){ variant = 'warning'}
       else { variant = 'danger'}
       this.setState({result: max, fetus:fetus, variant:variant, loading:false}, () =>{
         // console.log(this.state)
@@ -216,11 +233,12 @@ class App extends React.Component{
         </Row>
        <Row  style={{marginTop:'0px'}}>
        <Col xs={12} sm={12} md={12} lg={12} style={{paddingLeft:'40px', fontSize:'small'}} >
-         All inputs should be numeric
+         All inputs should be numeric 
+         <p>Blank field will be treated as zero</p>
          </Col>
 
          <Col className='form' xs={12} sm={12} md={4} lg={4}>
-         <input className='input' type="number" min='60'  onChange={(e) => this.setState({ FHR: parseFloat(e.target.value)})} value={this.state.FHR} placeholder='Baseline Fetal Heart Rate' />
+         <input className='input' type="number" min='60'  onChange={(e) => this.validate(e)} value={this.state.FHR} placeholder='Baseline Fetal Heart Rate' />
          </Col>
      
          <Col className='form' xs={12} sm={12} md={4} lg={4}>
@@ -267,7 +285,7 @@ class App extends React.Component{
      
      
          <Col className='form' xs={12} sm={12} md={12} lg={12}>
-         <Button variant="danger" size='lg' onClick={(e) => this.handlePredict(e)} >Predict</Button>
+         <Button variant="danger" size='lg' disabled={this.state.btnDisabled} onClick={(e) => this.handlePredict(e)} >Predict</Button>
          </Col>
      
       
